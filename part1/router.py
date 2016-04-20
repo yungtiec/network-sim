@@ -62,7 +62,7 @@ class Router (EventMixin):
 
     self.listenTo(core)
 
-  def resend_packet (self, packet_in, out_port):
+  def _resend_packet (self, packet_in, out_port, event):
     """
     previous l2 learning switch's functionality
 
@@ -78,7 +78,7 @@ class Router (EventMixin):
     msg.actions.append(action)
 
     # Send message to switch
-    self.connection.send(msg)
+    event.connection.send(msg)
 
     self.listenTo(core)
 
@@ -172,10 +172,10 @@ class Router (EventMixin):
     r.protolen = r.protolen
     r.opcode = r.REQUEST
     r.hwdst = ETHER_BROADCAST
-    r.protodst = packet.next.dstip # arp: who-has
-    r.hwsrc = packet.src
-    r.protosrc = packet.next.srcip # arp: tell me
-    eth = ethernet(type=ethernet.ARP_TYPE, src=packet.src, dst=ETHER_BROADCAST)
+    r.protodst = p.next.dstip # arp: who-has
+    r.hwsrc = p.src
+    r.protosrc = p.next.srcip # arp: tell me
+    eth = ethernet(type=ethernet.ARP_TYPE, src=p.src, dst=ETHER_BROADCAST)
     eth.set_payload(r)
     log.debug("DPID %i port %i ARPing for %s on behalf of %s" % (dpid, inport,
      str(r.protodst), str(r.protosrc)))
@@ -197,7 +197,7 @@ class Router (EventMixin):
     r.protodst = a.protosrc
     r.protosrc = a.protodst
     r.hwsrc = self.arpCache[dpid][a.protodst]
-    eth = ethernet(type=packet.type, src=r.hwsrc, dst=a.hwsrc)
+    eth = ethernet(type=event.parsed.type, src=r.hwsrc, dst=a.hwsrc)
     eth.set_payload(r)
     log.debug("DPID %i port %i answering ARP for %s" % (dpid, inport, str(r.protosrc)))
     msg = of.ofp_packet_out()
@@ -287,6 +287,7 @@ class Router (EventMixin):
         return
 
       # process arp packet
+      a = packet.next
       if a.prototype == arp.PROTO_TYPE_IP:
         if a.hwtype == arp.HW_TYPE_ETHERNET:
           if a.protosrc != 0:
@@ -297,15 +298,15 @@ class Router (EventMixin):
               # maybe in arp queue
               if a.protosrc in self.arpQueue[dpid] and len(self.arpQueue[dpid][a.protosrc]) != 0:
                 # process queue
-                log.debug('DPID %d: processing pending arpWait packet for ip %s' % (dpid, str(ip)))
-                while len(self.arpQueue[dpid][ip]) > 0:
-                  (bufferId, inport) = self.arpQueue[dpid][ip][0]
+                log.debug('DPID %d: processing pending arpWait packet for ip %s' % (dpid, str(a.protosrc)))
+                while len(self.arpQueue[dpid][a.protosrc]) > 0:
+                  (bufferId, inport) = self.arpQueue[dpid][a.protosrc][0]
                   msg = of.ofp_packet_out(buffer_id=bufferId, in_port=inport)
                   msg.actions.append(of.ofp_action_dl_addr.set_dst(self.arpCache[dpid][a.protosrc]))
                   msg.actions.append(of.ofp_action_output(port = self.routingTable[dpid][a.protosrc]))
                   e.connection.send(msg)
-                  log.debug("Sending packets in ARP queue: DPID %d, buffer id: %d, destip: %s, destmac: %s, port: %d" % (dpid, bid, str(ip), str(self.arpTable[dpid][ip]), self.routingTable[dpid][ip]))
-                  del self.arpQueue[dpid][ip][0]
+                  log.debug("Sending packets in ARP queue: DPID %d, buffer id: %d, destip: %s, destmac: %s, port: %d" % (dpid, bufferId, str(ip), str(self.arpTable[dpid][a.protosrc]), self.routingTable[dpid][a.protosrc]))
+                  del self.arpQueue[dpid][a.protosrc][0]
 
             if a.opcode == arp.REQUEST and a.protodst in self.fakeways:
               # Maybe we can answer
@@ -313,7 +314,7 @@ class Router (EventMixin):
 
       # don't recognize the packet
       log.debug("Unknown ARP request: DPID %d flooding" % (dpid))
-      self._resend_packet(packet_in, of.OFPP_FLOOD)
+      self._resend_packet(packet_in, of.OFPP_FLOOD, e)
 
 def launch (fakeways="10.0.1.1,10.0.2.1,10.0.3.1"):
     fakeways = fakeways.split(',')
