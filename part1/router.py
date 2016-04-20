@@ -30,11 +30,14 @@ import pox
 from pox.lib.packet.ethernet import ethernet, ETHER_BROADCAST
 from pox.lib.packet.ipv4 import ipv4
 from pox.lib.packet.arp import arp
+from pox.lib.packet.icmp import icmp
 from pox.lib.addresses import IPAddr, EthAddr
 from pox.lib.util import str_to_bool, dpidToStr
 from pox.lib.recoco import Timer
 import pox.openflow.libopenflow_01 as of
 from pox.lib.revent import *
+import pox.lib.packet as pkt
+import struct
 
 log = core.getLogger()
 
@@ -128,16 +131,16 @@ class Router (EventMixin):
     #https://openflow.stanford.edu/display/ONL/POX+Wiki#POXWiki-OpenFlowMessages
 
   def _icmp_reply(self, dpid, p, srcip, dstip, icmpType, event):
-    pktIcmp = icmp()
+    pktIcmp = pkt.icmp()
+    # TYPE_DEST_UNREACH = 3, TYPE_ECHO_REPLY = 0
     if icmpType == pkt.TYPE_ECHO_REPLY:
       pktIcmp.payload = p.find('icmp').payload
     elif icmpType == pkt.TYPE_DEST_UNREACH:
-      orig_ip = p.find('ipv4')
-      d = orig_ip.pack()
-      d = d[:orig_ip.hl * 4 + 8]
-      d = struct.pack("!HH", 0, 0) + d # network, unsigned short, unsigned short
-      pktIcmp.payload = d
-
+      pktIcmp.type = pkt.TYPE_DEST_UNREACH
+      unreachMsg = pkt.unreach()
+      unreachMsg.payload = p.payload
+      pktIcmp.payload = unreachMsg
+      
     # Make IP header
     pktIp = ipv4()
     pktIp.protocol = pktIp.ICMP_PROTOCOL
@@ -161,7 +164,8 @@ class Router (EventMixin):
     msg.in_port = self.routingTable[dpid][srcip]
     event.connection.send(msg)
 
-    log.debug('DPID %d: IP %s pings %s, icmp reply with %d', dpid, str(srcip), str(dstip), icmpType)
+    log.debug('DPID %d: IP %s pings %s, icmp reply with type %d', dpid, str(srcip), str(dstip), icmpType)
+    log.debug('(type 0: reply, type 3: unreach)')
     # reference: https://github.com/hip2b2/poxstuff/blob/master/pong2.py
 
   def _arp_request(self, p, inport, dpid, event):
@@ -298,23 +302,23 @@ class Router (EventMixin):
               # maybe in arp queue
               if a.protosrc in self.arpQueue[dpid] and len(self.arpQueue[dpid][a.protosrc]) != 0:
                 # process queue
-                log.debug('DPID %d: processing pending arpWait packet for ip %s' % (dpid, str(a.protosrc)))
+                log.debug('DPID %d processing arpQueue request for ip %s' % (dpid, str(a.protosrc)))
                 while len(self.arpQueue[dpid][a.protosrc]) > 0:
                   (bufferId, inport) = self.arpQueue[dpid][a.protosrc][0]
                   msg = of.ofp_packet_out(buffer_id=bufferId, in_port=inport)
                   msg.actions.append(of.ofp_action_dl_addr.set_dst(self.arpCache[dpid][a.protosrc]))
                   msg.actions.append(of.ofp_action_output(port = self.routingTable[dpid][a.protosrc]))
                   e.connection.send(msg)
-                  log.debug("Sending packets in ARP queue: DPID %d, buffer id: %d, destip: %s, destmac: %s, port: %d" % (dpid, bufferId, str(ip), str(self.arpTable[dpid][a.protosrc]), self.routingTable[dpid][a.protosrc]))
+                  log.debug("DPIP %d ARP reply to entry in ARP queue: buffer id: %d, destip: %s, destmac: %s, port: %d" % (dpid, bufferId, str(a.protosrc), str(self.arpCache[dpid][a.protosrc]), self.routingTable[dpid][a.protosrc]))
                   del self.arpQueue[dpid][a.protosrc][0]
 
             if a.opcode == arp.REQUEST and a.protodst in self.fakeways:
               # Maybe we can answer
               self._arp_response(a,inport,dpid,e)
-
-      # don't recognize the packet
-      log.debug("Unknown ARP request: DPID %d flooding" % (dpid))
-      self._resend_packet(packet_in, of.OFPP_FLOOD, e)
+      else:
+        # don't recognize the packet
+        log.debug("Unknown ARP request: DPID %d flooding" % (dpid))
+        self._resend_packet(packet_in, of.OFPP_FLOOD, e)
 
 def launch (fakeways="10.0.1.1,10.0.2.1,10.0.3.1"):
     fakeways = fakeways.split(',')
