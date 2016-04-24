@@ -165,6 +165,7 @@ class Router (EventMixin):
     # reference: https://github.com/hip2b2/poxstuff/blob/master/pong2.py
 
   def _arp_request(self, p, inport, dpid, event):
+    # input p is data link layer packet
     r = arp()
     r.hwtype = r.HW_TYPE_ETHERNET
     r.prototype = r.PROTO_TYPE_IP
@@ -172,10 +173,10 @@ class Router (EventMixin):
     r.protolen = r.protolen
     r.opcode = r.REQUEST
     r.hwdst = ETHER_BROADCAST
-    r.protodst = packet.next.dstip # arp: who-has
-    r.hwsrc = packet.src
-    r.protosrc = packet.next.srcip # arp: tell me
-    eth = ethernet(type=ethernet.ARP_TYPE, src=packet.src, dst=ETHER_BROADCAST)
+    r.protodst = p.next.dstip # arp: who-has
+    r.hwsrc = p.src
+    r.protosrc = p.next.srcip # arp: tell me
+    eth = ethernet(type=ethernet.ARP_TYPE, src=p.src, dst=ETHER_BROADCAST)
     eth.set_payload(r)
     log.debug("DPID %i port %i ARPing for %s on behalf of %s" % (dpid, inport,
      str(r.protodst), str(r.protosrc)))
@@ -197,7 +198,7 @@ class Router (EventMixin):
     r.protodst = a.protosrc
     r.protosrc = a.protodst
     r.hwsrc = self.arpCache[dpid][a.protodst]
-    eth = ethernet(type=packet.type, src=r.hwsrc, dst=a.hwsrc)
+    eth = ethernet(type=event.parsed.type, src=r.hwsrc, dst=a.hwsrc)
     eth.set_payload(r)
     log.debug("DPID %i port %i answering ARP for %s" % (dpid, inport, str(r.protosrc)))
     msg = of.ofp_packet_out()
@@ -287,6 +288,7 @@ class Router (EventMixin):
         return
 
       # process arp packet
+      a = packet.next
       if a.prototype == arp.PROTO_TYPE_IP:
         if a.hwtype == arp.HW_TYPE_ETHERNET:
           if a.protosrc != 0:
