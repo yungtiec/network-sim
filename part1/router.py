@@ -310,8 +310,6 @@ class Router (EventMixin):
       log.debug("Unknown ARP request: DPID %d flooding" % (dpid))
       self._resend_packet(packet_in, of.OFPP_FLOOD)
 
-
-
 def launch (fakeways="10.0.1.1,10.0.2.1,10.0.3.1"):
     fakeways = fakeways.split(',')
     fakeways = [IPAddr(x) for x in fakeways]
