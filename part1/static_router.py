@@ -242,7 +242,7 @@ class Router (EventMixin):
         log.debug('Routing Table entry added, (DPID %d, IP %s) -> port %d' % (dpid, str(packet.next.srcip), inport))
         self.routingTable[dpid][packet.next.srcip] = inport
       else:
-        log.debug('Routing Table entry RE-learned, (DPID %d, IP %s) -> port %d' % (dpid, str(packet.next.srcip), inport))
+        # log.debug('Routing Table entry RE-learned, (DPID %d, IP %s) -> port %d' % (dpid, str(packet.next.srcip), inport))
 
       # check if destination node is in fact in the network
       if (not self._check_ip_exist(packet.next.dstip)):
@@ -284,7 +284,11 @@ class Router (EventMixin):
         log.debug('Routing Table entry added, (DPID %d, IP %s) -> port %d' % (dpid, str(packet.next.protosrc), inport))
         self.routingTable[dpid][packet.next.protosrc] = inport
       else:
-        log.debug('Routing Table entry RE-learned, (DPID %d, IP %s) -> port %d' % (dpid, str(packet.next.protosrc), inport))
+        # log.debug('Routing Table entry RE-learned, (DPID %d, IP %s) -> port %d' % (dpid, str(packet.next.protosrc), inport))
+
+      if not self._check_ip_exist(n.protodst):
+        self._icmp_reply(dpid, packet, packet.next.srcip, packet.next.dstip, pkt.TYPE_DEST_UNREACH, e)
+        return
 
       # process arp packet
       a = packet.next
