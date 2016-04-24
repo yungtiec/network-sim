@@ -3,7 +3,7 @@ Router Exercise
 
 https://github.com/mininet/openflow-tutorial/wiki/Router-Exercise
 
-$ sudo mn --custom dir/router_exercise_topo.py --topo RouterExerciseTopo --mac --controller=remote,ip=127.0.0.1
+$ sudo mn --custom ~/mininet/router_exercise_topo.py --topo RouterExerciseTopo --mac --controller=remote,ip=127.0.0.1
 
 """
 
