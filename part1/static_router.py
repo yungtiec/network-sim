@@ -134,6 +134,7 @@ class Router (EventMixin):
     pktIcmp = pkt.icmp()
     # TYPE_ECHO_REQUEST = 8, TYPE_DEST_UNREACH = 3, TYPE_ECHO_REPLY = 0
     if icmpType == pkt.TYPE_ECHO_REPLY:
+      pktIcmp.type = icmpType
       pktIcmp.payload = p.find('icmp').payload
     elif icmpType == pkt.TYPE_DEST_UNREACH:
       pktIcmp.type = pkt.TYPE_DEST_UNREACH
