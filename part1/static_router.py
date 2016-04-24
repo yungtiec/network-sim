@@ -286,7 +286,7 @@ class Router (EventMixin):
       # else:
       #   # log.debug('Routing Table entry RE-learned, (DPID %d, IP %s) -> port %d' % (dpid, str(packet.next.protosrc), inport))
 
-      if not self._check_ip_exist(n.protodst):
+      if not self._check_ip_exist(packet.next.protodst):
         self._icmp_reply(dpid, packet, packet.next.srcip, packet.next.dstip, pkt.TYPE_DEST_UNREACH, e)
         return
 
