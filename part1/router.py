@@ -60,6 +60,8 @@ class Router (EventMixin):
     # for each dpid, [ip] => list of (buffer_id, inport)
     self.arpQueue = {}
 
+    self.listenTo(core)
+
   def resend_packet (self, packet_in, out_port):
     """
     previous l2 learning switch's functionality
