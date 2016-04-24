@@ -132,7 +132,7 @@ class Router (EventMixin):
 
   def _icmp_reply(self, dpid, p, srcip, dstip, icmpType, event):
     pktIcmp = pkt.icmp()
-    # TYPE_DEST_UNREACH = 3, TYPE_ECHO_REPLY = 0
+    # TYPE_ECHO_REQUEST = 8, TYPE_DEST_UNREACH = 3, TYPE_ECHO_REPLY = 0
     if icmpType == pkt.TYPE_ECHO_REPLY:
       pktIcmp.payload = p.find('icmp').payload
     elif icmpType == pkt.TYPE_DEST_UNREACH:
@@ -165,7 +165,7 @@ class Router (EventMixin):
     event.connection.send(msg)
 
     log.debug('DPID %d: IP %s pings %s, icmp reply with type %d', dpid, str(srcip), str(dstip), icmpType)
-    log.debug('(type 0: reply, type 3: unreach)')
+    log.debug('(type 0: reply, type 3: unreach, type 8: request)')
     # reference: https://github.com/hip2b2/poxstuff/blob/master/pong2.py
 
   def _arp_request(self, p, inport, dpid, event):
