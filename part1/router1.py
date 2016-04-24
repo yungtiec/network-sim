@@ -83,8 +83,6 @@ class Router (EventMixin):
     # Send message to switch
     event.connection.send(msg)
 
-    self.listenTo(core)
-
   def _handle_GoingUpEvent (self, event):
     self.listenTo(core.openflow)
     log.debug("Up...")
@@ -134,7 +132,6 @@ class Router (EventMixin):
     pktIcmp = pkt.icmp()
     # TYPE_ECHO_REQUEST = 8, TYPE_DEST_UNREACH = 3, TYPE_ECHO_REPLY = 0
     if icmpType == pkt.TYPE_ECHO_REPLY:
-      pktIcmp.type = icmpType
       pktIcmp.payload = p.find('icmp').payload
     elif icmpType == pkt.TYPE_DEST_UNREACH:
       pktIcmp.type = pkt.TYPE_DEST_UNREACH
@@ -242,8 +239,8 @@ class Router (EventMixin):
       if packet.next.srcip not in self.routingTable[dpid]:
         log.debug('Routing Table entry added, (DPID %d, IP %s) -> port %d' % (dpid, str(packet.next.srcip), inport))
         self.routingTable[dpid][packet.next.srcip] = inport
-      # else:
-      #   # log.debug('Routing Table entry RE-learned, (DPID %d, IP %s) -> port %d' % (dpid, str(packet.next.srcip), inport))
+      else:
+        log.debug('Routing Table entry RE-learned, (DPID %d, IP %s) -> port %d' % (dpid, str(packet.next.srcip), inport))
 
       # check if destination node is in fact in the network
       if (not self._check_ip_exist(packet.next.dstip)):
@@ -284,11 +281,12 @@ class Router (EventMixin):
       if packet.next.protosrc not in self.routingTable[dpid]:
         log.debug('Routing Table entry added, (DPID %d, IP %s) -> port %d' % (dpid, str(packet.next.protosrc), inport))
         self.routingTable[dpid][packet.next.protosrc] = inport
-      # else:
-      #   # log.debug('Routing Table entry RE-learned, (DPID %d, IP %s) -> port %d' % (dpid, str(packet.next.protosrc), inport))
+      else:
+        log.debug('Routing Table entry RE-learned, (DPID %d, IP %s) -> port %d' % (dpid, str(packet.next.protosrc), inport))
 
-      if not self._check_ip_exist(packet.next.protodst):
-        self._icmp_reply(dpid, packet, packet.next.srcip, packet.next.dstip, pkt.TYPE_DEST_UNREACH, e)
+      if (not self._check_ip_exist(packet.next.protodst)):
+        # ICMP unreachable response
+        self._icmp_reply(dpid, packet, packet.next.protosrc, packet.next.protodst, pkt.TYPE_DEST_UNREACH, e)
         return
 
       # process arp packet
