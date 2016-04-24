@@ -84,6 +84,9 @@ class Router (EventMixin):
     self.listenTo(core.openflow)
     log.debug("Up...")
 
+  def _handle_ConnectionUp(self, event):
+    log.debug("DPID %d is UP..." % event.dpid)
+
   def _register_dpid(self, dpid):
     # arpCache[dpid][ip] = data link address
     if dpid not in self.arpCache:
@@ -286,7 +289,7 @@ class Router (EventMixin):
         if a.hwtype == arp.HW_TYPE_ETHERNET:
           if a.protosrc != 0:
             # Learn or update port/MAC info
-            if a.protosrc not in self.arpCache[dpid]
+            if a.protosrc not in self.arpCache[dpid]:
               self.arpCache[dpid][a.protosrc] = a.hwsrc
               log.debug('ARP entry added: DPID %d, IP = %s, MAC = %s' % (dpid, str(a.protosrc), str(a.hwsrc)))
               # maybe in arp queue
