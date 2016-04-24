@@ -3,13 +3,17 @@ Router Exercise Topology
 
 https://github.com/mininet/openflow-tutorial/wiki/Router-Exercise
 
-$ sudo mn --custom ~/mininet/router_exercise_topo.py --topo RouterExerciseTopo --mac --controller=remote,ip=127.0.0.1
+   host1(h1) -- switch(s1) -- host3(h3)
+                   |
+                 host2(h2)
+
+$ sudo mn --custom ~/mininet/mytopo1.py --topo mytopo --mac --controller=remote,ip=127.0.0.1
 
 """
 
 from mininet.topo import Topo
 
-class RouterExerciseTopo( Topo ):
+class MyTopo( Topo ):
 
     def __init__( self ):
         "Create custom topo."
@@ -30,4 +34,4 @@ class RouterExerciseTopo( Topo ):
         self.addLink( 'h3', 's1')
 
 
-topos = { 'RouterExerciseTopo': ( lambda: RouterExerciseTopo() ) }
+topos = { 'mytopo': ( lambda: MyTopo() ) }
