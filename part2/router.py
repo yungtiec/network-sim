@@ -106,7 +106,6 @@ class Router (EventMixin):
     myip = dpid_to_ip(mydpid)
     mymac = dpid_to_mac(mydpid)
     e = event
-    inport = e.port
     
     self._register_dpid(mydpid)
 
@@ -115,7 +114,7 @@ class Router (EventMixin):
       for dpid in self.subnetRouters.iterkeys():
         log.debug('dpid %d ip %s', dpid, self.subnetRouters[dpid])
         if self.subnetRouters[dpid] not in arpCache[mydpid]:
-          self._arp_request(inport, mydpid, mymac, myip, self.subnetRouters[dpid], e)
+          self._arp_request(of.OFPP_FLOOD, mydpid, mymac, myip, self.subnetRouters[dpid], e)
 
   def _register_dpid(self, dpid):
     # arpCache[dpid][ip] = data link address
