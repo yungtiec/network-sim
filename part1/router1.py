@@ -63,6 +63,8 @@ class Router (EventMixin):
     # for each dpid, [ip] => list of (buffer_id, inport)
     self.arpQueue = {}
 
+
+
     self.listenTo(core)
 
   def _resend_packet (self, packet_in, out_port, event):
@@ -130,11 +132,11 @@ class Router (EventMixin):
 
   def _icmp_reply(self, dpid, p, srcip, dstip, icmpType, event):
     pktIcmp = pkt.icmp()
+    pktIcmp.type = icmpType
     # TYPE_ECHO_REQUEST = 8, TYPE_DEST_UNREACH = 3, TYPE_ECHO_REPLY = 0
     if icmpType == pkt.TYPE_ECHO_REPLY:
       pktIcmp.payload = p.find('icmp').payload
     elif icmpType == pkt.TYPE_DEST_UNREACH:
-      pktIcmp.type = pkt.TYPE_DEST_UNREACH
       unreachMsg = pkt.unreach()
       unreachMsg.payload = p.payload
       pktIcmp.payload = unreachMsg
