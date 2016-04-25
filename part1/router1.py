@@ -115,13 +115,13 @@ class Router (EventMixin):
     ip_string = str(ip)
     l = ip_string.split('.')
     if l[0] != '10':
-        log.debug("IP %s not on the network"%ip_string )
+        log.debug("118 IP %s not on the network"%ip_string )
         return False
     if l[1] != '0':
-        log.debug("IP %s not on the network"%ip_string )
+        log.debug("121 IP %s not on the network"%ip_string )
         return False
     if l[2] != '1' and l[2] != '2' and l[2] != '3':
-        log.debug("IP %s not on the network"%ip_string )
+        log.debug("124 IP %s not on the network"%ip_string )
         return False
     return True
 
@@ -168,11 +168,11 @@ class Router (EventMixin):
     msg.in_port = self.routingTable[dpid][srcip]
     self.connections[dpid].send(msg)
 
-    log.debug('DPID %d: IP %s pings %s, icmp reply with type %d', dpid, str(srcip), str(dstip), icmpType)
+    log.debug('171 DPID %d: IP %s pings %s, icmp reply with type %d', dpid, str(srcip), str(dstip), icmpType)
     log.debug('(type 0: reply, type 3: unreach, type 8: request)')
     # reference: https://github.com/hip2b2/poxstuff/blob/master/pong2.py
 
-  def _arp_request(self, p, inport, dpid, event):
+  def _arp_request(self, p, inport, dpid):
     # input p is data link layer packet
     r = arp()
     r.hwtype = r.HW_TYPE_ETHERNET
@@ -186,7 +186,7 @@ class Router (EventMixin):
     r.protosrc = p.next.srcip # arp: tell me
     eth = ethernet(type=ethernet.ARP_TYPE, src=p.src, dst=ETHER_BROADCAST)
     eth.set_payload(r)
-    log.debug("DPID %i port %i ARPing for %s on behalf of %s" % (dpid, inport,
+    log.debug("189 DPID %i port %i ARPing for %s on behalf of %s" % (dpid, inport,
      str(r.protodst), str(r.protosrc)))
     msg = of.ofp_packet_out()
     msg.data = eth.pack()
@@ -208,7 +208,7 @@ class Router (EventMixin):
     r.hwsrc = self.arpCache[dpid][a.protodst]
     eth = ethernet(type=event.parsed.type, src=r.hwsrc, dst=a.hwsrc)
     eth.set_payload(r)
-    log.debug("DPID %i port %i answering ARP for %s" % (dpid, inport, str(r.protosrc)))
+    log.debug("211 DPID %i port %i answering ARP for %s" % (dpid, inport, str(r.protosrc)))
     msg = of.ofp_packet_out()
     msg.data = eth.pack()
     msg.actions.append(of.ofp_action_output(port = of.OFPP_IN_PORT))
@@ -227,26 +227,26 @@ class Router (EventMixin):
 
     # check packet
     if not packet.parsed:
-        log.warning("Ignoring incomplete packet")
+        log.warning("230 Ignoring incomplete packet")
         return
     
     # in l3_learning.py, don't know if apply here
     if packet.type == ethernet.LLDP_TYPE:
         # Ignore LLDP packets
-        log.debug('Ignoring LLDP packet')
+        log.debug('236 Ignoring LLDP packet')
         return
 
     packet_in = event.ofp # The actual ofp_packet_in message.
 
     if isinstance(packet.next,ipv4):
-      log.debug("DPID: %i, port: %i, IP %s => %s" % (dpid,inport, packet.next.srcip,packet.next.dstip))
+      log.debug("242 DPID: %i, port: %i, IP %s => %s" % (dpid,inport, packet.next.srcip,packet.next.dstip))
 
       # learn route
       if packet.next.srcip not in self.routingTable[dpid]:
-        log.debug('Routing Table entry added, (DPID %d, IP %s) -> port %d' % (dpid, str(packet.next.srcip), inport))
+        log.debug('246 Routing Table entry added, (DPID %d, IP %s) -> port %d' % (dpid, str(packet.next.srcip), inport))
         self.routingTable[dpid][packet.next.srcip] = inport
       else:
-        log.debug('Routing Table entry RE-learned, (DPID %d, IP %s) -> port %d' % (dpid, str(packet.next.srcip), inport))
+        log.debug('248 Routing Table entry RE-learned, (DPID %d, IP %s) -> port %d' % (dpid, str(packet.next.srcip), inport))
 
       # check if destination node is in fact in the network
       if (not self._check_ip_exist(packet.next.dstip)):
@@ -258,7 +258,7 @@ class Router (EventMixin):
       if packet.next.dstip in self.fakeways:
         # packet destined to router when its an icmp request
         if isinstance(packet.next.next, icmp):
-          log.debug('ICMP request to router')
+          log.debug('261 ICMP request to router')
           if packet.next.next.type == pkt.TYPE_ECHO_REQUEST:
             self._icmp_reply(dpid, packet, packet.next.srcip, packet.next.dstip, pkt.TYPE_ECHO_REQUEST, e)
       else:
@@ -269,15 +269,15 @@ class Router (EventMixin):
             # if not, allocate an entry
             self.arpQueue[dpid][packet.next.dstip] = []
             self.arpQueue[dpid][packet.next.dstip].append((packet_in.buffer_id, inport))
-            log.debug('ARP queue added: DPID %d, IP %s => %s, buffer_id %d, destination unknown, sending request' % (dpid, str(packet.next.srcip), str(packet.next.dstip), packet_in.buffer_id))
-            self._arp_request(packet, inport, dpid, e)
+            log.debug('272 ARP queue added: DPID %d, IP %s => %s, buffer_id %d, destination unknown, sending request' % (dpid, str(packet.next.srcip), str(packet.next.dstip), packet_in.buffer_id))
+            self._arp_request(packet, inport, dpid)
           else:
             # found in table, forward
             msg = of.ofp_packet_out(buffer_id=packet_in.buffer_id, in_port=inport)
             msg.actions.append(of.ofp_action_dl_addr.set_dst(self.arpCache[dpid][packet.next.dstip]))
             msg.actions.append(of.ofp_action_output(port = self.routingTable[dpid][packet.next.dstip]))
             self.connections[dpid].send(msg)
-            log.debug('Packet forwarded: DPID %d, IP %s => %s, to port %d' % (dpid, str(packet.next.srcip), str(packet.next.dstip), self.routingTable[dpid][packet.next.dstip]))
+            log.debug('280 Packet forwarded: DPID %d, IP %s => %s, to port %d' % (dpid, str(packet.next.srcip), str(packet.next.dstip), self.routingTable[dpid][packet.next.dstip]))
             # pushing a flow
             self._ipv4_flow_mod(packet.next, dpid, e)
 
@@ -285,10 +285,10 @@ class Router (EventMixin):
 
       # learn 
       if packet.next.protosrc not in self.routingTable[dpid]:
-        log.debug('Routing Table entry added, (DPID %d, IP %s) -> port %d' % (dpid, str(packet.next.protosrc), inport))
+        log.debug('288 Routing Table entry added, (DPID %d, IP %s) -> port %d' % (dpid, str(packet.next.protosrc), inport))
         self.routingTable[dpid][packet.next.protosrc] = inport
       else:
-        log.debug('Routing Table entry RE-learned, (DPID %d, IP %s) -> port %d' % (dpid, str(packet.next.protosrc), inport))
+        log.debug('291 Routing Table entry RE-learned, (DPID %d, IP %s) -> port %d' % (dpid, str(packet.next.protosrc), inport))
 
       if (not self._check_ip_exist(packet.next.protodst)):
         # ICMP unreachable response
@@ -303,18 +303,18 @@ class Router (EventMixin):
             # Learn or update port/MAC info
             if a.protosrc not in self.arpCache[dpid]:
               self.arpCache[dpid][a.protosrc] = a.hwsrc
-              log.debug('ARP entry added: DPID %d, IP = %s, MAC = %s' % (dpid, str(a.protosrc), str(a.hwsrc)))
+              log.debug('306 ARP entry added: DPID %d, IP = %s, MAC = %s' % (dpid, str(a.protosrc), str(a.hwsrc)))
               # maybe in arp queue
               if a.protosrc in self.arpQueue[dpid] and len(self.arpQueue[dpid][a.protosrc]) != 0:
                 # process queue
-                log.debug('DPID %d processing arpQueue request for ip %s' % (dpid, str(a.protosrc)))
+                log.debug('310 DPID %d processing arpQueue request for ip %s' % (dpid, str(a.protosrc)))
                 while len(self.arpQueue[dpid][a.protosrc]) > 0:
                   (bufferId, inport) = self.arpQueue[dpid][a.protosrc][0]
                   msg = of.ofp_packet_out(buffer_id=bufferId, in_port=inport)
                   msg.actions.append(of.ofp_action_dl_addr.set_dst(self.arpCache[dpid][a.protosrc]))
                   msg.actions.append(of.ofp_action_output(port = self.routingTable[dpid][a.protosrc]))
                   self.connections[dpid].send(msg)
-                  log.debug("DPIP %d ARP reply to entry in ARP queue: buffer id: %d, destip: %s, destmac: %s, port: %d" % (dpid, bufferId, str(a.protosrc), str(self.arpCache[dpid][a.protosrc]), self.routingTable[dpid][a.protosrc]))
+                  log.debug("317 DPIP %d ARP reply to entry in ARP queue: buffer id: %d, destip: %s, destmac: %s, port: %d" % (dpid, bufferId, str(a.protosrc), str(self.arpCache[dpid][a.protosrc]), self.routingTable[dpid][a.protosrc]))
                   del self.arpQueue[dpid][a.protosrc][0]
 
             if a.opcode == arp.REQUEST and a.protodst in self.fakeways:
@@ -322,7 +322,7 @@ class Router (EventMixin):
               self._arp_response(a,inport,dpid,e)
       else:
         # don't recognize the packet
-        log.debug("Unknown ARP request: DPID %d flooding" % (dpid))
+        log.debug("325 Unknown ARP request: DPID %d flooding" % (dpid))
         self._resend_packet(packet_in, dpid, of.OFPP_FLOOD)
 
 def launch (fakeways="10.0.1.1,10.0.2.1,10.0.3.1"):
