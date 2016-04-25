@@ -133,7 +133,7 @@ class Router (EventMixin):
   def _check_ip_exist(self, ip):
     return ip in self.devices
 
-  def _is_same_subnet(ipa, ipb):
+  def _is_same_subnet(self, ipa, ipb):
     (a1,a2,a3,a4) = str(ipa).split('.')
     (b1,b2,b3,b4) = str(ipb).split('.')
     return True if (a1 == b1 and a2 == b2 and a3 == b3) else False
@@ -204,7 +204,6 @@ class Router (EventMixin):
     msg = of.ofp_packet_out()
     msg.data = eth.pack()
     msg.actions.append(of.ofp_action_output(port = of.OFPP_FLOOD))
-    msg.in_port = inport
     event.connection.send(msg)
     # reference: https://github.com/CPqD/RouteFlow/blob/master/pox/pox/forwarding/l3_learning.py
 
@@ -287,7 +286,7 @@ class Router (EventMixin):
             self.arpQueue[dpid][packetDstIp] = []
             self.arpQueue[dpid][packetDstIp].append((packet_in.buffer_id, inport))
             log.debug('ARP queue added: DPID %d, IP %s => %s, buffer_id %d, destination unknown, sending request' % (dpid, str(packetSrcIp), str(packetDstIp), packet_in.buffer_id))
-            self._arp_request(packet, inport, dpid, e)
+            self._arp_request(inport, dpid, packet.src, packetSrcIp, packetDstIp, e)
         else:
           # found in table, forward
           msg = of.ofp_packet_out(buffer_id=packet_in.buffer_id, in_port=inport)
@@ -304,7 +303,7 @@ class Router (EventMixin):
         for dpid in self.subnetRouters.iterkeys():
           (b1,b2,b3,b4) = str(self.subnetRouters[dpid]).split('.')
           if (a1 == b1 and a2 == b2 and a3 == b3):
-            nextHopIp = IPAddr(str(self.subnetRouters[dpid]))
+            nextHopIp = self.subnetRouters[dpid])
         msg = of.ofp_packet_out(buffer_id=packet_in.buffer_id, in_port=inport)
         msg.actions.append(of.ofp_action_dl_addr.set_dst(self.arpCache[dpid][nextHopIp]))
         msg.actions.append(of.ofp_action_output(port = self.routingTable[dpid][nextHopIp]))
