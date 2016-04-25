@@ -267,15 +267,15 @@ class Router (EventMixin):
             self.arpQueue[dpid][packet.next.dstip].append((packet_in.buffer_id, inport))
             log.debug('ARP queue added: DPID %d, IP %s => %s, buffer_id %d, destination unknown, sending request' % (dpid, str(packet.next.srcip), str(packet.next.dstip), packet_in.buffer_id))
             self._arp_request(packet, inport, dpid, e)
-          else:
-            # found in table, forward
-            msg = of.ofp_packet_out(buffer_id=packet_in.buffer_id, in_port=inport)
-            msg.actions.append(of.ofp_action_dl_addr.set_dst(self.arpCache[dpid][packet.next.dstip]))
-            msg.actions.append(of.ofp_action_output(port = self.routingTable[dpid][packet.next.dstip]))
-            e.connection.send(msg)
-            log.debug('Packet forwarded: DPID %d, IP %s => %s, to port %d' % (dpid, str(packet.next.srcip), str(packet.next.dstip), self.routingTable[dpid][packet.next.dstip]))
-            # pushing a flow
-            self._ipv4_flow_mod(packet.next, dpid, e)
+        else:
+          # found in table, forward
+          msg = of.ofp_packet_out(buffer_id=packet_in.buffer_id, in_port=inport)
+          msg.actions.append(of.ofp_action_dl_addr.set_dst(self.arpCache[dpid][packet.next.dstip]))
+          msg.actions.append(of.ofp_action_output(port = self.routingTable[dpid][packet.next.dstip]))
+          e.connection.send(msg)
+          log.debug('Packet forwarded: DPID %d, IP %s => %s, to port %d' % (dpid, str(packet.next.srcip), str(packet.next.dstip), self.routingTable[dpid][packet.next.dstip]))
+          # pushing a flow
+          self._ipv4_flow_mod(packet.next, dpid, e)
 
     elif isinstance(packet.next, arp):
 
