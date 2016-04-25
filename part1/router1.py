@@ -93,9 +93,9 @@ class Router (EventMixin):
   def _handle_ConnectionUp(self, event):
     log.debug("DPID %d is UP..." % event.dpid)
 
-  def _register_dpid(self, dpid):
+  def _register_dpid(self, dpid, event):
     if dpid not in self.connections:
-      self.connections[dpid]
+      self.connections[dpid] = event.connection
 
     # arpCache[dpid][ip] = data link address
     if dpid not in self.arpCache:
@@ -223,7 +223,7 @@ class Router (EventMixin):
     inport = e.port
 
     # create dpid entry in all the tables
-    self._register_dpid(dpid)
+    self._register_dpid(dpid, e)
 
     # check packet
     if not packet.parsed:
