@@ -110,6 +110,7 @@ class Router (EventMixin):
     self._register_dpid(mydpid)
 
     self.arpCache[mydpid][myip] = mymac
+    self.subnetRouters[mydpid] = myip
     if len(self.subnetRouters) > 1:
       for dpid in self.subnetRouters.iterkeys():
         log.debug('dpid %d ip %s', dpid, self.subnetRouters[dpid])
