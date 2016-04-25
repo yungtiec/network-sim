@@ -256,7 +256,7 @@ class Router (EventMixin):
         if isinstance(packet.next.next, icmp):
           log.debug('ICMP request to router')
           if packet.next.next.type == pkt.TYPE_ECHO_REQUEST:
-            self._icmp_reply(dpid, packet, packet.next.srcip, packet.next.dstip, pkt.TYPE_ECHO_REQUEST, e)
+            self._icmp_reply(dpid, packet, packet.next.srcip, packet.next.dstip, pkt.TYPE_ECHO_REPLY, e)
       else:
         # check with routing table and arp cache
         if packet.next.dstip not in self.routingTable[dpid] or packet.next.dstip not in self.arpCache[dpid]:
