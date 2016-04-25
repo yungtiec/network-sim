@@ -48,6 +48,7 @@ def dpid_to_mac (dpid):
 class Router (EventMixin):
   def __init__ (self, fakeways = []):
     log.debug('Initialize router')
+
     self.fakeways = fakeways
 
     # 1. An arp cache per dpid
@@ -63,7 +64,7 @@ class Router (EventMixin):
     # for each dpid, [ip] => list of (buffer_id, inport)
     self.arpQueue = {}
 
-
+    self.connections = {}
 
     self.listenTo(core)
 
@@ -83,7 +84,7 @@ class Router (EventMixin):
     msg.actions.append(action)
 
     # Send message to switch
-    event.connection.send(msg)
+    self.connections[event.connection.dpid].send(msg)
 
   def _handle_GoingUpEvent (self, event):
     self.listenTo(core.openflow)
@@ -93,6 +94,9 @@ class Router (EventMixin):
     log.debug("DPID %d is UP..." % event.dpid)
 
   def _register_dpid(self, dpid):
+    if dpid not in self.connections:
+      self.connections[dpid]
+
     # arpCache[dpid][ip] = data link address
     if dpid not in self.arpCache:
       self.arpCache[dpid] = {}
@@ -127,7 +131,7 @@ class Router (EventMixin):
     msg.match.nw_dst = p.dstip
     msg.actions.append( of.ofp_action_dl_addr.set_dst(self.arpCache[dpid][p.dstip]) )
     msg.actions.append( of.ofp_action_output(port = self.routingTable[dpid][p.dstip]) )
-    event.connection.send(msg)
+    self.connections[dpid].send(msg)
     #https://openflow.stanford.edu/display/ONL/POX+Wiki#POXWiki-OpenFlowMessages
 
   def _icmp_reply(self, dpid, p, srcip, dstip, icmpType, event):
@@ -162,7 +166,7 @@ class Router (EventMixin):
     msg.actions.append(of.ofp_action_output(port = of.OFPP_IN_PORT))
     msg.data = eth.pack()
     msg.in_port = self.routingTable[dpid][srcip]
-    event.connection.send(msg)
+    self.connections[dpid].send(msg)
 
     log.debug('DPID %d: IP %s pings %s, icmp reply with type %d', dpid, str(srcip), str(dstip), icmpType)
     log.debug('(type 0: reply, type 3: unreach, type 8: request)')
@@ -188,7 +192,7 @@ class Router (EventMixin):
     msg.data = eth.pack()
     msg.actions.append(of.ofp_action_output(port = of.OFPP_FLOOD))
     msg.in_port = inport
-    event.connection.send(msg)
+    self.connections[dpid].send(msg)
     # reference: https://github.com/CPqD/RouteFlow/blob/master/pox/pox/forwarding/l3_learning.py
 
   def _arp_response(self, a, inport, dpid, event):
@@ -209,7 +213,7 @@ class Router (EventMixin):
     msg.data = eth.pack()
     msg.actions.append(of.ofp_action_output(port = of.OFPP_IN_PORT))
     msg.in_port = inport
-    event.connection.send(msg)
+    self.connections[dpid].send(msg)
 
   def _handle_PacketIn (self, event):
     e = event
@@ -272,7 +276,7 @@ class Router (EventMixin):
             msg = of.ofp_packet_out(buffer_id=packet_in.buffer_id, in_port=inport)
             msg.actions.append(of.ofp_action_dl_addr.set_dst(self.arpCache[dpid][packet.next.dstip]))
             msg.actions.append(of.ofp_action_output(port = self.routingTable[dpid][packet.next.dstip]))
-            e.connection.send(msg)
+            self.connections[dpid].send(msg)
             log.debug('Packet forwarded: DPID %d, IP %s => %s, to port %d' % (dpid, str(packet.next.srcip), str(packet.next.dstip), self.routingTable[dpid][packet.next.dstip]))
             # pushing a flow
             self._ipv4_flow_mod(packet.next, dpid, e)
@@ -309,7 +313,7 @@ class Router (EventMixin):
                   msg = of.ofp_packet_out(buffer_id=bufferId, in_port=inport)
                   msg.actions.append(of.ofp_action_dl_addr.set_dst(self.arpCache[dpid][a.protosrc]))
                   msg.actions.append(of.ofp_action_output(port = self.routingTable[dpid][a.protosrc]))
-                  e.connection.send(msg)
+                  self.connections[dpid].send(msg)
                   log.debug("DPIP %d ARP reply to entry in ARP queue: buffer id: %d, destip: %s, destmac: %s, port: %d" % (dpid, bufferId, str(a.protosrc), str(self.arpCache[dpid][a.protosrc]), self.routingTable[dpid][a.protosrc]))
                   del self.arpQueue[dpid][a.protosrc][0]
 
