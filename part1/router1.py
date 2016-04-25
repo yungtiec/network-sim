@@ -68,7 +68,7 @@ class Router (EventMixin):
 
     self.listenTo(core)
 
-  def _resend_packet (self, packet_in, out_port, event):
+  def _resend_packet (self, dpid, packet_in, out_port):
     """
     previous l2 learning switch's functionality
 
@@ -84,7 +84,7 @@ class Router (EventMixin):
     msg.actions.append(action)
 
     # Send message to switch
-    self.connections[event.connection.dpid].send(msg)
+    self.connections[dpid].send(msg)
 
   def _handle_GoingUpEvent (self, event):
     self.listenTo(core.openflow)
@@ -93,9 +93,9 @@ class Router (EventMixin):
   def _handle_ConnectionUp(self, event):
     log.debug("DPID %d is UP..." % event.dpid)
 
-  def _register_dpid(self, dpid, event):
+  def _register_dpid(self, dpid, connection):
     if dpid not in self.connections:
-      self.connections[dpid] = event.connection
+      self.connections[dpid] = connection
 
     # arpCache[dpid][ip] = data link address
     if dpid not in self.arpCache:
@@ -223,7 +223,7 @@ class Router (EventMixin):
     inport = e.port
 
     # create dpid entry in all the tables
-    self._register_dpid(dpid, e)
+    self._register_dpid(dpid, e.connection)
 
     # check packet
     if not packet.parsed:
@@ -323,7 +323,7 @@ class Router (EventMixin):
       else:
         # don't recognize the packet
         log.debug("Unknown ARP request: DPID %d flooding" % (dpid))
-        self._resend_packet(packet_in, of.OFPP_FLOOD, e)
+        self._resend_packet(packet_in, dpid, of.OFPP_FLOOD)
 
 def launch (fakeways="10.0.1.1,10.0.2.1,10.0.3.1"):
     fakeways = fakeways.split(',')
