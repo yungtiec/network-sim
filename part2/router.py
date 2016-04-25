@@ -114,7 +114,7 @@ class Router (EventMixin):
     if len(self.subnetRouters) > 1:
       for dpid in self.subnetRouters.iterkeys():
         log.debug('dpid %d ip %s', dpid, self.subnetRouters[dpid])
-        if self.subnetRouters[dpid] not in arpCache[mydpid]:
+        if self.subnetRouters[dpid] not in self.arpCache[mydpid]:
           self._arp_request(of.OFPP_FLOOD, mydpid, mymac, myip, self.subnetRouters[dpid], e)
 
   def _register_dpid(self, dpid):
