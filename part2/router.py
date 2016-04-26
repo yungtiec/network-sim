@@ -111,6 +111,7 @@ class Router (EventMixin):
 
     self.arpCache[mydpid][myip] = mymac
     self.subnetRouters[mydpid] = myip
+
     if len(self.subnetRouters) > 1:
       for dpid in self.subnetRouters.iterkeys():
         log.debug('dpid %d ip %s', dpid, self.subnetRouters[dpid])
@@ -300,13 +301,14 @@ class Router (EventMixin):
       else: 
         # give it to the router with the same netId
         (a1,a2,a3,a4) = str(packetDstIp).split('.')
-        for dpid in self.subnetRouters.iterkeys():
-          (b1,b2,b3,b4) = str(self.subnetRouters[dpid]).split('.')
+        for otherDpid in self.subnetRouters.iterkeys():
+          (b1,b2,b3,b4) = str(self.subnetRouters[otherDpid]).split('.')
           if (a1 == b1 and a2 == b2 and a3 == b3):
-            nextHopIp = self.subnetRouters[dpid])
+            nextHopIp = self.subnetRouters[otherDpid]
+        outport = self.routingTable[dpid][nextHopIp]
         msg = of.ofp_packet_out(buffer_id=packet_in.buffer_id, in_port=inport)
         msg.actions.append(of.ofp_action_dl_addr.set_dst(self.arpCache[dpid][nextHopIp]))
-        msg.actions.append(of.ofp_action_output(port = self.routingTable[dpid][nextHopIp]))
+        msg.actions.append(of.ofp_action_output(port = outport))
         e.connection.send(msg)
         log.debug('(Different subnet) Packet forwarded to router: DPID %d, IP %s => %s, to port %d' % (dpid, str(packetSrcIp), str(packetDstIp), self.routingTable[dpid][packetDstIp]))
         # pushing a flow
