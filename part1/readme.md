@@ -5,7 +5,7 @@ Two switches are created using POX API for going throught the following openflow
 ## 1.[Creating a Learning Switch](https://github.com/mininet/openflow-tutorial/wiki/Create-a-Learning-Switch)
 ##### of_tutorial.py:
 act_like_switch: modified to simulate layer-2 switch behavior
-To simulate
+##### To simulate
 - open two console: one for mininet, one for the controller
 - create topology in mininet console (the following two were used)
 ```
@@ -39,7 +39,7 @@ create the following topology
 ![Image to router exercise topology]
 (https://raw.githubusercontent.com/wiki/mininet/openflow-tutorial/images/router_exercise_topo.png)
 
-To simulate
+##### To simulate
 - open two console: one for mininet, one for the controller
 - create topology in mininet console
 make sure mytopo1.py is in the mininet directory
