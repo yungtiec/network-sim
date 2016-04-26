@@ -26,9 +26,9 @@ sudo mn --topo linear --switch ovsk --controller remote
 ##### static_router.py
 make a static layer-3 forwarder/switch, which supports:
 - ARP
-controller constructs ARP replies and forward them out the appropriate ports.
+  - controller constructs ARP replies and forward them out the appropriate ports.
 - static routing
-controller matches on IP address and forward out the appropriate port.
+  - controller matches on IP address and forward out the appropriate port.
 - ICMP
   - controller may receive ICMP echo (ping) requests for the router, which it should respond to.
   - packets for unreachable subnets should be responded to with ICMP network unreachable messages.
