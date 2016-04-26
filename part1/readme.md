@@ -3,8 +3,10 @@
 Two switches are created using POX API for going throught the following openflow-tutorial 
 
 ## 1.[Creating a Learning Switch](https://github.com/mininet/openflow-tutorial/wiki/Create-a-Learning-Switch)
+
 ##### of_tutorial.py:
 act_like_switch: modified to simulate layer-2 switch behavior
+
 ##### To simulate
 - open two console: one for mininet, one for the controller
 - create topology in mininet console (the following two were used)
@@ -22,7 +24,9 @@ sudo mn --topo linear --switch ovsk --controller remote
 ```
 ./pox.py log.level --DEBUG misc.of_tutorial 
 ```
+
 ## 2. [Router Exercise](https://github.com/mininet/openflow-tutorial/wiki/Router-Exercise)
+
 ##### static_router.py
 make a static layer-3 forwarder/switch, which supports:
 - ARP
