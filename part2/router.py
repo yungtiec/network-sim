@@ -276,7 +276,7 @@ class Router (EventMixin):
         if isinstance(packet.next.next, icmp):
           log.debug('ICMP request to me (the router)')
           if packet.next.next.type == pkt.TYPE_ECHO_REQUEST:
-            self._icmp_reply(dpid, packet, packetSrcIp, packetDstIp, pkt.TYPE_ECHO_REQUEST, e)
+            self._icmp_reply(dpid, packet, packetSrcIp, packetDstIp, pkt.TYPE_ECHO_REPLY, e)
       # if the src and dst are on the same subnet
       elif self._is_same_subnet(packetDstIp, myip):
         # check with routing table and arp cache
