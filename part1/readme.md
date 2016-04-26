@@ -1,4 +1,4 @@
-# Implementing OpenFlow applications using MININET and POX controller - part 1
+# OpenFlow applications using MININET and POX controller - part 1
 
 Two switches are created using POX API for going throught the following openflow-tutorial 
 
@@ -14,10 +14,12 @@ To simulate
     ```
     sudo mn --topo single,3 --mac --switch ovsk --controller remote
     ```
+
     (https://raw.githubusercontent.com/wiki/mininet/openflow-tutorial/images/Three_switch_layout_simple.png)
     ```
     sudo mn --topo linear --switch ovsk --controller remote
     ```
+    
     (https://raw.githubusercontent.com/wiki/mininet/openflow-tutorial/images/Linear2.png)
   - start controller in controller console
     ./pox py log.level --DEBUG misc.of_tutorial
