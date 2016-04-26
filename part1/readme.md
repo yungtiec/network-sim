@@ -27,8 +27,10 @@ sudo mn --topo linear --switch ovsk --controller remote
 controller to make a static layer-3 forwarder/switch
 ##### mytopo1.py
 create the following topology
+
 ![Image to router exercise topology]
 (https://raw.githubusercontent.com/wiki/mininet/openflow-tutorial/images/router_exercise_topo.png)
+
 To simulate
 - open two console: one for mininet, one for the controller
 - create topology in mininet console
