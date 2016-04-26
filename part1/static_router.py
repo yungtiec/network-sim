@@ -266,7 +266,7 @@ class Router (EventMixin):
             self.arpQueue[dpid][packet.next.dstip] = []
             self.arpQueue[dpid][packet.next.dstip].append((packet_in.buffer_id, inport))
             log.debug('ARP queue added: DPID %d, IP %s => %s, buffer_id %d, destination unknown, sending request' % (dpid, str(packet.next.srcip), str(packet.next.dstip), packet_in.buffer_id))
-            self._arp_request(packet, inport, dpid, e)
+            self._send_arp_request(packet, inport, dpid, e)
         else:
           # found in table, forward
           msg = of.ofp_packet_out(buffer_id=packet_in.buffer_id, in_port=inport)
