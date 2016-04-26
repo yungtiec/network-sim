@@ -139,11 +139,11 @@ class Router (EventMixin):
     (b1,b2,b3,b4) = str(ipb).split('.')
     return True if (a1 == b1 and a2 == b2 and a3 == b3) else False
 
-  def _send_flow_mod(self, p, dpid, event):
+  def _send_flow_mod(self, p, dpid, mac, event):
     msg = of.ofp_flow_mod()
     msg.match.dl_type = 0x800 # ip packet
     msg.match.nw_dst = p.dstip
-    msg.actions.append( of.ofp_action_dl_addr.set_dst(self.arpCache[dpid][p.dstip]) )
+    msg.actions.append( of.ofp_action_dl_addr.set_dst(mac) )
     msg.actions.append( of.ofp_action_output(port = self.routingTable[dpid][p.dstip]) )
     event.connection.send(msg)
     #https://openflow.stanford.edu/display/ONL/POX+Wiki#POXWiki-OpenFlowMessages
@@ -290,13 +290,15 @@ class Router (EventMixin):
             self._arp_request(inport, dpid, packet.src, packetSrcIp, packetDstIp, e)
         else:
           # found in table, forward
+          nextHopMac = self.arpCache[dpid][packetDstIp]
+          outport = self.routingTable[dpid][packetDstIp]
           msg = of.ofp_packet_out(buffer_id=packet_in.buffer_id, in_port=inport)
-          msg.actions.append(of.ofp_action_dl_addr.set_dst(self.arpCache[dpid][packetDstIp]))
-          msg.actions.append(of.ofp_action_output(port = self.routingTable[dpid][packetDstIp]))
+          msg.actions.append(of.ofp_action_dl_addr.set_dst(nextHopMac))
+          msg.actions.append(of.ofp_action_output(port = outport))
           e.connection.send(msg)
           log.debug('(Same subnet) Packet forwarded to host: DPID %d, IP %s => %s, to port %d' % (dpid, str(packetSrcIp), str(packetDstIp), self.routingTable[dpid][packetDstIp]))
           # pushing a flow
-          self._send_flow_mod(packet.next, dpid, e)
+          self._send_flow_mod(packet.next, dpid, nextHopMac, e)
       # not on the same subnet
       else: 
         # give it to the router with the same netId
@@ -304,15 +306,17 @@ class Router (EventMixin):
         for otherDpid in self.subnetRouters.iterkeys():
           (b1,b2,b3,b4) = str(self.subnetRouters[otherDpid]).split('.')
           if (a1 == b1 and a2 == b2 and a3 == b3):
+            nextHopDpid = otherDpid
             nextHopIp = self.subnetRouters[otherDpid]
+            nextHopMac = self.arpCache[dpid][nextHopIp]
         outport = self.routingTable[dpid][nextHopIp]
         msg = of.ofp_packet_out(buffer_id=packet_in.buffer_id, in_port=inport)
-        msg.actions.append(of.ofp_action_dl_addr.set_dst(self.arpCache[dpid][nextHopIp]))
+        msg.actions.append(of.ofp_action_dl_addr.set_dst(nextHopMac))
         msg.actions.append(of.ofp_action_output(port = outport))
         e.connection.send(msg)
-        log.debug('(Different subnet) Packet forwarded to router: DPID %d, IP %s => %s, to port %d' % (dpid, str(packetSrcIp), str(packetDstIp), self.routingTable[dpid][packetDstIp]))
+        log.debug('(Different subnet) Packet forwarded to router: DPID %d, IP %s => %s, to port %d' % (dpid, str(packetSrcIp), str(packetDstIp), outport))
         # pushing a flow
-        self._send_flow_mod(packet.next, dpid, e)    
+        self._send_flow_mod(packet.next, dpid, nextHopMac, e)    
 
     elif isinstance(packet.next, arp):
 
