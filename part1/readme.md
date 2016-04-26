@@ -1,4 +1,4 @@
-# OpenFlow applications using MININET and POX controller - part 1
+# OpenFlow applications using MININET and POX Controller - part 1
 
 Two switches are created using POX API for going throught the following openflow-tutorial 
 
@@ -33,6 +33,7 @@ make a static layer-3 forwarder/switch, which supports:
   - controller constructs ARP replies and forward them out the appropriate ports.
 - static routing
   - controller matches on IP address and forward out the appropriate port.
+  - only change packet's source and destination MAC address
 - ICMP
   - controller may receive ICMP echo (ping) requests for the router, which it should respond to.
   - packets for unreachable subnets should be responded to with ICMP network unreachable messages.
