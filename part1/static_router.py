@@ -130,7 +130,7 @@ class Router (EventMixin):
     event.connection.send(msg)
     #https://openflow.stanford.edu/display/ONL/POX+Wiki#POXWiki-OpenFlowMessages
 
-  def _icmp_reply(self, dpid, p, srcip, dstip, icmpType, event):
+  def _send_icmp_reply(self, dpid, p, srcip, dstip, icmpType, event):
     pktIcmp = pkt.icmp()
     # TYPE_ECHO_REQUEST = 8, TYPE_DEST_UNREACH = 3, TYPE_ECHO_REPLY = 0
     if icmpType == pkt.TYPE_ECHO_REPLY:
@@ -168,7 +168,7 @@ class Router (EventMixin):
     log.debug('(type 0: reply, type 3: unreach, type 8: request)')
     # reference: https://github.com/hip2b2/poxstuff/blob/master/pong2.py
 
-  def _arp_request(self, p, inport, dpid, event):
+  def _send_arp_request(self, p, inport, dpid, event):
     # input p is data link layer packet
     r = arp()
     r.hwtype = r.HW_TYPE_ETHERNET
@@ -191,7 +191,7 @@ class Router (EventMixin):
     event.connection.send(msg)
     # reference: https://github.com/CPqD/RouteFlow/blob/master/pox/pox/forwarding/l3_learning.py
 
-  def _arp_response(self, a, inport, dpid, event):
+  def _send_arp_response(self, a, inport, dpid, event):
     r = arp()
     r.hwtype = a.hwtype
     r.prototype = a.prototype
@@ -247,7 +247,7 @@ class Router (EventMixin):
       # check if destination node is in fact in the network
       if (not self._check_ip_exist(packet.next.dstip)):
         # ICMP unreachable response
-        self._icmp_reply(dpid, packet, packet.next.srcip, packet.next.dstip, pkt.TYPE_DEST_UNREACH, e)
+        self._send_icmp_reply(dpid, packet, packet.next.srcip, packet.next.dstip, pkt.TYPE_DEST_UNREACH, e)
         return
 
       # if the packet is for the router
@@ -256,7 +256,7 @@ class Router (EventMixin):
         if isinstance(packet.next.next, icmp):
           log.debug('ICMP request to router')
           if packet.next.next.type == pkt.TYPE_ECHO_REQUEST:
-            self._icmp_reply(dpid, packet, packet.next.srcip, packet.next.dstip, pkt.TYPE_ECHO_REPLY, e)
+            self._send_icmp_reply(dpid, packet, packet.next.srcip, packet.next.dstip, pkt.TYPE_ECHO_REPLY, e)
       else:
         # check with routing table and arp cache
         if packet.next.dstip not in self.routingTable[dpid] or packet.next.dstip not in self.arpCache[dpid]:
@@ -288,7 +288,7 @@ class Router (EventMixin):
 
       if (not self._check_ip_exist(packet.next.protodst)):
         # ICMP unreachable response
-        self._icmp_reply(dpid, packet, packet.next.protosrc, packet.next.protodst, pkt.TYPE_DEST_UNREACH, e)
+        self._send_icmp_reply(dpid, packet, packet.next.protosrc, packet.next.protodst, pkt.TYPE_DEST_UNREACH, e)
         return
 
       # process arp packet
@@ -315,7 +315,7 @@ class Router (EventMixin):
 
             if a.opcode == arp.REQUEST and a.protodst in self.fakeways:
               # Maybe we can answer
-              self._arp_response(a,inport,dpid,e)
+              self._send_arp_response(a,inport,dpid,e)
       else:
         # don't recognize the packet
         log.debug("Unknown ARP request: DPID %d flooding" % (dpid))
