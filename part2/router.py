@@ -139,12 +139,12 @@ class Router (EventMixin):
     (b1,b2,b3,b4) = str(ipb).split('.')
     return True if (a1 == b1 and a2 == b2 and a3 == b3) else False
 
-  def _send_flow_mod(self, p, dpid, mac, event):
+  def _send_flow_mod(self, p, dpid, mac, port, event):
     msg = of.ofp_flow_mod()
     msg.match.dl_type = 0x800 # ip packet
     msg.match.nw_dst = p.dstip
     msg.actions.append( of.ofp_action_dl_addr.set_dst(mac) )
-    msg.actions.append( of.ofp_action_output(port = self.routingTable[dpid][p.dstip]) )
+    msg.actions.append( of.ofp_action_output(port = port) )
     event.connection.send(msg)
     #https://openflow.stanford.edu/display/ONL/POX+Wiki#POXWiki-OpenFlowMessages
 
@@ -298,7 +298,7 @@ class Router (EventMixin):
           e.connection.send(msg)
           log.debug('(Same subnet) Packet forwarded to host: DPID %d, IP %s => %s, to port %d' % (dpid, str(packetSrcIp), str(packetDstIp), self.routingTable[dpid][packetDstIp]))
           # pushing a flow
-          self._send_flow_mod(packet.next, dpid, nextHopMac, e)
+          self._send_flow_mod(packet.next, dpid, nextHopMac, outport, e)
       # not on the same subnet
       else: 
         # give it to the router with the same netId
@@ -316,7 +316,7 @@ class Router (EventMixin):
         e.connection.send(msg)
         log.debug('(Different subnet) Packet forwarded to router: DPID %d, IP %s => %s, to port %d' % (dpid, str(packetSrcIp), str(packetDstIp), outport))
         # pushing a flow
-        self._send_flow_mod(packet.next, dpid, nextHopMac, e)    
+        self._send_flow_mod(packet.next, dpid, nextHopMac, outport ,  e)    
 
     elif isinstance(packet.next, arp):
 
